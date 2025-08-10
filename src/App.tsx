@@ -1,6 +1,10 @@
 import React, { useState } from 'react';
+import { useAuth } from './hooks/useAuth';
+import { AuthService } from './services/authService';
+import { FirestoreService } from './services/firestoreService';
 import LoadingScreen from './components/LoadingScreen';
 import HomePage from './components/HomePage';
+import ProfilePage from './components/ProfilePage';
 import Dashboard from './components/Dashboard';
 import CommuteLogger from './components/CommuteLogger';
 import Leaderboard from './components/Leaderboard';
@@ -13,29 +17,14 @@ import ReferralPage from './components/ReferralPage';
 import ChatBot from './components/ChatBot';
 import Header from './components/Header';
 import Navigation from './components/Navigation';
-import { CommuteEntry, UserProfile as UserProfileType } from './types';
+import { CommuteEntry } from './types';
 
 function App() {
-  const [isLoading, setIsLoading] = useState(true);
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const { user: authUser, profile, loading: authLoading } = useAuth();
+  const [showProfile, setShowProfile] = useState(false);
   const [activeTab, setActiveTab] = useState<'dashboard' | 'log' | 'leaderboard' | 'social' | 'impact' | 'calendar' | 'profile' | 'analytics' | 'referral'>('dashboard');
   const [commutes, setCommutes] = useState<CommuteEntry[]>([]);
-  const [user, setUser] = useState<UserProfileType>({
-    id: '1',
-    name: 'Alex Johnson',
-    email: 'alex.johnson@university.edu',
-    department: 'Computer Science',
-    college: 'University of Technology',
-    totalCO2Saved: 0,
-    streak: 0,
-    badges: [],
-    bio: '',
-    phone: '',
-    joinDate: new Date().toISOString(),
-    followers: [],
-    following: [],
-    profileImage: ''
-  });
+  const [isLoading, setIsLoading] = useState(true);
 
   // Simulate loading
   React.useEffect(() => {
@@ -45,56 +34,106 @@ function App() {
     return () => clearTimeout(timer);
   }, []);
 
-  const handleLogin = (userData: UserProfileType) => {
-    setUser(userData);
-    setIsLoggedIn(true);
+  // Load user commutes when authenticated
+  React.useEffect(() => {
+    if (authUser && profile) {
+      loadUserCommutes();
+    }
+  }, [authUser, profile]);
+
+  const loadUserCommutes = async () => {
+    if (!authUser) return;
+    
+    try {
+      const userCommutes = await FirestoreService.getUserCommutes(authUser.uid);
+      setCommutes(userCommutes);
+    } catch (error) {
+      console.error('Error loading commutes:', error);
+    }
   };
 
-  const addCommute = (commute: Omit<CommuteEntry, 'id' | 'date'>) => {
-    const newCommute: CommuteEntry = {
-      ...commute,
-      id: Date.now().toString(),
-      date: new Date().toISOString()
-    };
-    setCommutes(prev => [newCommute, ...prev]);
+  const addCommute = async (commute: Omit<CommuteEntry, 'id' | 'date'>) => {
+    if (!authUser) return;
+
+    try {
+      const commuteId = await FirestoreService.addCommuteEntry(authUser.uid, commute);
+      const newCommute: CommuteEntry = {
+        ...commute,
+        id: commuteId,
+        date: new Date().toISOString()
+      };
+      setCommutes(prev => [newCommute, ...prev]);
+    } catch (error) {
+      console.error('Error adding commute:', error);
+    }
   };
 
-  if (isLoading) {
+  const handleSignOut = async () => {
+    try {
+      await AuthService.signOut();
+    } catch (error) {
+      console.error('Sign out error:', error);
+    }
+  };
+
+  const handleUpdateUser = (updatedUser: any) => {
+    // The profile will be updated through the auth hook
+    setShowProfile(false);
+  };
+
+  if (isLoading || authLoading) {
     return <LoadingScreen isLoading={isLoading} />;
   }
 
-  if (!isLoggedIn) {
-    return <HomePage onLogin={handleLogin} />;
+  if (!authUser || !profile) {
+    return <HomePage onLogin={() => {}} />;
+  }
+
+  if (showProfile) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50">
+        <Header user={profile} onProfileClick={() => setShowProfile(false)} />
+        <main className="pt-16 pb-20 px-4">
+          <div className="max-w-4xl mx-auto">
+            <ProfilePage 
+              user={profile} 
+              onUpdateUser={handleUpdateUser}
+              onBack={() => setShowProfile(false)}
+            />
+          </div>
+        </main>
+      </div>
+    );
   }
 
   const renderContent = () => {
     switch (activeTab) {
       case 'dashboard':
-        return <Dashboard commutes={commutes} user={user} />;
+        return <Dashboard commutes={commutes} user={profile} />;
       case 'log':
         return <CommuteLogger onAddCommute={addCommute} />;
       case 'leaderboard':
         return <Leaderboard />;
       case 'social':
-        return <SocialFeed user={user} />;
+        return <SocialFeed user={profile} />;
       case 'impact':
         return <CO2ImpactPage />;
       case 'calendar':
-        return <CalendarView commutes={commutes} streak={user.streak} />;
+        return <CalendarView commutes={commutes} streak={profile.streak} />;
       case 'profile':
-        return <UserProfile user={user} onUpdateUser={setUser} />;
+        return <UserProfile user={profile} onUpdateUser={handleUpdateUser} />;
       case 'analytics':
         return <AnalyticsPage commutes={commutes} />;
       case 'referral':
-        return <ReferralPage user={user} />;
+        return <ReferralPage user={profile} />;
       default:
-        return <Dashboard commutes={commutes} user={user} />;
+        return <Dashboard commutes={commutes} user={profile} />;
     }
   };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50">
-      <Header user={user} />
+      <Header user={profile} onProfileClick={() => setShowProfile(true)} />
       <main className="pt-16 pb-20 px-4">
         <div className="max-w-4xl mx-auto">
           {renderContent()}

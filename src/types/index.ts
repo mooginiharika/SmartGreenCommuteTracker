@@ -73,6 +73,7 @@ export interface UserProfile extends User {
   followers: string[];
   following: string[];
   profileImage: string;
+  emailVerified: boolean;
 }
 
 export interface AnalyticsData {

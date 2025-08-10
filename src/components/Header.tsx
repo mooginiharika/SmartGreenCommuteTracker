@@ -1,12 +1,13 @@
 import React from 'react';
 import { Leaf, Bell, Settings } from 'lucide-react';
-import { User } from '../types';
+import { UserProfileType } from '../types';
 
 interface HeaderProps {
-  user: User;
+  user: UserProfileType;
+  onProfileClick?: () => void;
 }
 
-function Header({ user }: HeaderProps) {
+function Header({ user, onProfileClick }: HeaderProps) {
   return (
     <header className="fixed top-0 left-0 right-0 bg-white/95 backdrop-blur-sm border-b border-green-100 z-50">
       <div className="max-w-4xl mx-auto px-4 py-3">
@@ -28,11 +29,14 @@ function Header({ user }: HeaderProps) {
             <button className="p-2 rounded-lg hover:bg-gray-100 transition-colors">
               <Settings className="w-5 h-5 text-gray-600" />
             </button>
-            <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
+            <button 
+              onClick={onProfileClick}
+              className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center hover:shadow-lg transition-shadow"
+            >
               <span className="text-sm font-semibold text-white">
                 {user.name.split(' ').map(n => n[0]).join('')}
               </span>
-            </div>
+            </button>
           </div>
         </div>
       </div>

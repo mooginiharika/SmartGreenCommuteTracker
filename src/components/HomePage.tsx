@@ -1,36 +1,17 @@
 import React, { useState } from 'react';
 import { Leaf, Users, TrendingUp, Award, QrCode, Mail, Lock, Phone, MapPin } from 'lucide-react';
+import AuthForm from './AuthForm';
 
 interface HomePageProps {
-  onLogin: (user: any) => void;
+  onLogin: () => void;
 }
 
 function HomePage({ onLogin }: HomePageProps) {
-  const [loginMode, setLoginMode] = useState<'password' | 'qr'>('password');
   const [showLogin, setShowLogin] = useState(false);
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [college, setCollege] = useState('');
-  const [isNewUser, setIsNewUser] = useState(false);
+  const [loginMode, setLoginMode] = useState<'password' | 'qr'>('password');
+  const [error, setError] = useState<string | null>(null);
 
-  const handleLogin = (e: React.FormEvent) => {
-    e.preventDefault();
-    const user = {
-      id: '1',
-      name: 'Alex Johnson',
-      email: email || 'alex.johnson@university.edu',
-      department: 'Computer Science',
-      college: college || 'University of Technology',
-      totalCO2Saved: 0,
-      streak: 0,
-      badges: [],
-      bio: '',
-      phone: '',
-      joinDate: new Date().toISOString(),
-      followers: [],
-      following: [],
-      profileImage: ''
-    };
+  const handleAuthSuccess = () => {
     onLogin(user);
   };
 
@@ -95,49 +76,17 @@ function HomePage({ onLogin }: HomePageProps) {
           </div>
 
           {loginMode === 'password' ? (
-            <form onSubmit={handleLogin} className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Email</label>
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                  placeholder="your.email@university.edu"
-                  required
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Password</label>
-                <input
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                  placeholder="Enter your password"
-                  required
-                />
-              </div>
-              {isNewUser && (
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">College/University</label>
-                  <input
-                    type="text"
-                    value={college}
-                    onChange={(e) => setCollege(e.target.value)}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                    placeholder="Your institution name"
-                    required
-                  />
+            <div>
+              {error && (
+                <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-xl text-red-700 text-sm">
+                  {error}
                 </div>
               )}
-              <button
-                type="submit"
-                className="w-full bg-gradient-to-r from-green-500 to-emerald-600 text-white py-3 px-6 rounded-xl font-semibold hover:from-green-600 hover:to-emerald-700 transition-all"
-              >
-                {isNewUser ? 'Join Community' : 'Sign In'}
-              </button>
-            </form>
+              <AuthForm 
+                onSuccess={handleAuthSuccess}
+                onError={setError}
+              />
+            </div>
           ) : (
             <div className="text-center py-8">
               <div className="w-48 h-48 bg-gray-100 rounded-2xl mx-auto mb-4 flex items-center justify-center">
@@ -145,22 +94,13 @@ function HomePage({ onLogin }: HomePageProps) {
               </div>
               <p className="text-gray-600 mb-4">Scan QR code with your mobile device</p>
               <button
-                onClick={handleLogin}
+                onClick={handleAuthSuccess}
                 className="text-green-600 font-medium hover:text-green-700"
               >
                 Use demo login instead
               </button>
             </div>
           )}
-
-          <div className="mt-6 text-center">
-            <button
-              onClick={() => setIsNewUser(!isNewUser)}
-              className="text-green-600 font-medium hover:text-green-700"
-            >
-              {isNewUser ? 'Already have an account?' : 'First time user?'}
-            </button>
-          </div>
 
           <div className="mt-8 pt-6 border-t border-gray-200">
             <div className="text-center text-sm text-gray-600">
